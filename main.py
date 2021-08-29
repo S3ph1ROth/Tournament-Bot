@@ -1,6 +1,7 @@
 import os
 import json
 import discord
+from discord import channel
 from dotenv import load_dotenv
 from graphqlclient import GraphQLClient
 import requests
@@ -149,6 +150,8 @@ def convertToCountryCode(countryName, countries):
     if value == countryName:
         return '<img src="https://www.countryflags.io/' + key + '/shiny/64.png">'
 
+
+
 #bot slusa eventove, ovo je cim se upali i konektuje za server
 @client.event
 async def on_ready():
@@ -159,16 +162,21 @@ async def on_ready():
 async def on_message(message):
   if message.author == client.user:
     return
+
+  #id kanala gde se salju poruke
+  listenerChannel = client.get_channel(868263643320553473)
+  #id kanala gde saljemo tag za on stream match
+  onStreamChannel = client.get_channel(867891817617031171)
   
   #inicijalizacija turnira ako je komanda $url link_ka_bracketu
-  if message.content.startswith("$url"):
+  if message.content.startswith("$url") and listenerChannel == message.channel:
     url = message.content.split(' ')[1]
     initTournament(url)
     await message.channel.send("Bracket initialized")
 
   #ispis podataka u fajlove i tagovanje sledecih igraca za stream
   for keys in matches.keys():
-    if(message.content.lower()[1:] == keys.lower()):
+    if message.content.lower()[1:] == keys.lower() and listenerChannel == message.channel:
       key = message.content[1:]
       f = open("round.txt", "w")
       f.write(matches[key].round)
@@ -190,11 +198,11 @@ async def on_message(message):
       await message.channel.send("Round is " + matches[key].round)
       await message.channel.send("Player 1 is " + matches[key].player1)
       await message.channel.send("Player 2 is " + matches[key].player2)
-      await message.channel.send("On stream <@" + matches[key].player1DiscordId + '> <@' + matches[key].player2DiscordId + '>')
+      await onStreamChannel.send("On stream <@" + matches[key].player1DiscordId + '> <@' + matches[key].player2DiscordId + '>')
       await message.channel.send("Files updated")
 
   #komanda za swapovanje igraca za slucaj da zatreba, da ne mora rucno da se radi
-  if(message.content.startswith("$swap")):
+  if message.content.startswith("$swap") and listenerChannel == message.channel:
     f = open("player1.txt", "r")
     player2 = f.read()
     f.close()
@@ -210,7 +218,7 @@ async def on_message(message):
     await message.channel.send("Player 1 is now " + player1 + " and player 2 is now " + player2)
   
   #uputstvo kako koristiti bota za bota mikija :D
-  if(message.content.startswith("$help")):
+  if message.content.startswith("$help") and listenerChannel == message.channel:
     await message.channel.send('''
     HOW TO USE:
     When starting the tournament use the $url command by typing in the channel: $url link_to_the_bracket
